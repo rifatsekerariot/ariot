@@ -7,25 +7,26 @@ Designed for industrial use cases such as AGVs, smart grids, and safety-critical
 
 ---
 
-### 🧠 Developed by  
+### 👨‍💻 Developed by  
 **Rifat Şeker**  
-Founder of Ariot Teknoloji – Industrial IoT, Automation & AI  
-🇹🇷 Made with passion in Adana, Türkiye
+Founder of **Ariot Teknoloji**  
+🔧 Industrial IoT • Automation • Embedded AI  
+📍 Adana, Türkiye
 
 ---
 
 ## ⚙️ Key Features
 
-- ⏱️ **Deterministic TDMA-style communication** (10ms slots)
-- 🔁 **Real-time SYNC broadcasting** from gateway (every 1s)
-- 🅰️🅱️🅲️ **Message prioritization**  
-  - Class A: Critical alerts  
-  - Class B: Telemetry / Ops  
-  - Class C: Background logs
-- 🚨 **Out-of-band ALERT packets** bypass time slot for emergencies
-- ⚡ **Sub-10ms latency** for critical messages
-- 📡 Works with **ESP32 DevKit V1** & **Raspberry Pi 5**
-- 🛜 Supports **LoRa (SX1276)** and **WiFi (ESP-NOW)** backhaul
+- ⏱️ **TDMA-style deterministic communication** with 10ms slots
+- 🔁 **Real-time SYNC broadcast** from gateway every 1 second
+- 🅰️🅱️🅲️ **Priority-based messaging**  
+  - Class A → Critical (emergencies)  
+  - Class B → Operational (telemetry)  
+  - Class C → Background (logs, status)
+- 🚨 **Out-of-band ALERT packets** for emergency bypass
+- ⚡ **Ultra-low latency** (sub-10ms delivery for Class A)
+- 📡 Compatible with **ESP32 DevKit V1** and **Raspberry Pi 5**
+- 🛜 Supports both **LoRa (SX127x)** and **WiFi (ESP-NOW)**
 
 ---
 
@@ -33,10 +34,9 @@ Founder of Ariot Teknoloji – Industrial IoT, Automation & AI
 
 ```bash
 /src
-  ├── afdx_client.ino        # ESP32 firmware (Arduino)
-  ├── slot_scheduler.py      # Gateway scheduler (Python)
-  └── packet_receiver.py     # Gateway data listener
+  ├── afdx_client.ino        # ESP32 firmware (Arduino-based)
+  ├── slot_scheduler.py      # Python-based slot time scheduler (Gateway)
+  └── packet_receiver.py     # UDP-based data collector (Gateway)
 
 /docs
-  └── RFC_v0.2.md            # Protocol specification (Markdown)
-
+  └── RFC_v0.2.md            # Protocol specification (Markdown format)
