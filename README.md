@@ -41,5 +41,14 @@ Founder of **Ariot Teknoloji**
 /docs
   └── RFC_v0.2.md            # Protocol specification (Markdown format)
 
+---
 
 📌 Known issue: Rust toolchain may conflict with Arduino IDE 3.1.2 on Windows. See https://github.com/rifatsekerariot/ariot/issues/1#issue-3082451242
+
+## 📑 Test Logs
+
+The protocol stack has been tested under various real-world scenarios.
+
+- 🔥 **[ESP32-A ALERT – Overheat Scenario](docs/test-logs/esp32-a_alert_test.md)**  
+  Demonstrates emergency `ALERT` packet triggering when temperature crosses 29.8°C threshold.
+---
