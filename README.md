@@ -40,3 +40,6 @@ Founder of **Ariot Teknoloji**
 
 /docs
   └── RFC_v0.2.md            # Protocol specification (Markdown format)
+
+
+📌 Known issue: Rust toolchain may conflict with Arduino IDE 3.1.2 on Windows. See https://github.com/rifatsekerariot/ariot/issues/1#issue-3082451242
