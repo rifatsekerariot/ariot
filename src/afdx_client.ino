@@ -7,13 +7,11 @@ WiFiUDP udp;
 unsigned long lastSyncTime = 0;
 unsigned long localOffsetMs = 0;
 
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "wifi";
+const char* password = "pass";
 
 int mySlotId = 0; // ESP32-A için 0, ESP32-B için 1
 int slotDurationMs = 10;
-unsigned long slotStartMs = 0;
-
 float fakeTemp = 23.0;
 bool alertSent = false;
 
@@ -27,7 +25,7 @@ void connectToWiFi() {
     delay(200);
     Serial.print(".");
   }
-  Serial.println("\n[WiFi] Bağlandı.");
+  Serial.println("\n[WiFi] Bağlantı sağlandı!");
 }
 
 void listenForSync() {
@@ -41,25 +39,39 @@ void listenForSync() {
       double timestamp = doc["timestamp"];
       localOffsetMs = (unsigned long)(timestamp * 1000) - millis();
       lastSyncTime = millis();
-      Serial.println("[SYNC] Saat senkronize edildi.");
+      Serial.println("[SYNC] Senkronizasyon tamam.");
     }
   }
 }
 
 void sendData() {
-  WiFiUDP sender;
-  sender.beginPacket("192.168.1.100", udpPort); // Gateway IP
-  sender.print("DATA|ESP32-A|Temp:" + String(fakeTemp));
-  sender.endPacket();
-  Serial.println("[DATA] Gönderildi.");
+  StaticJsonDocument<256> doc;
+  doc["type"] = "DATA";
+  doc["device"] = "ESP32-A";
+  doc["temp"] = fakeTemp;
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+  udp.beginPacket("192.168.1.11", udpPort); // Gateway IP
+  udp.write((uint8_t*)buffer, strlen(buffer));
+  udp.endPacket();
+  Serial.print("[DATA] Gönderildi: ");
+  Serial.println(buffer);
 }
 
-void sendAlert(String alertData) {
-  WiFiUDP sender;
-  sender.beginPacket("192.168.1.100", udpPort);
-  sender.print(alertData);
-  sender.endPacket();
-  Serial.println("[ALERT] Kritik veri gönderildi!");
+void sendAlert(const String& msg) {
+  StaticJsonDocument<256> doc;
+  doc["type"] = "ALERT";
+  doc["device"] = "ESP32-A";
+  doc["message"] = msg;
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+  udp.beginPacket("192.168.1.11", udpPort);
+  udp.write((uint8_t*)buffer, strlen(buffer));
+  udp.endPacket();
+  Serial.print("[ALERT] Gönderildi: ");
+  Serial.println(buffer);
 }
 
 void setup() {
@@ -71,4 +83,18 @@ void setup() {
 void loop() {
   listenForSync();
 
-  unsigned long
+  unsigned long currentTime = getSyncedTimeMs();
+  int cycleTime = (currentTime % 1000);
+
+  if (cycleTime >= mySlotId * slotDurationMs && cycleTime < (mySlotId + 1) * slotDurationMs) {
+    fakeTemp += 0.4;
+    sendData();
+
+    if (fakeTemp > 29.8 && !alertSent) {
+      sendAlert("Overheat detected!");
+      alertSent = true;
+    }
+
+    delay(slotDurationMs);
+  }
+}
