@@ -1,0 +1,287 @@
+import time
+import socket
+import json
+import threading
+from datetime import datetime
+from collections import defaultdict, deque
+
+class AFDXGatewayScheduler:
+    def __init__(self):
+        # Konfigürasyon
+        self.slot_table = {
+            0: {"device_id": "ESP32-A", "priority": "B", "duration_ms": 10, "bandwidth": 1000},
+            1: {"device_id": "ESP32-B", "priority": "C", "duration_ms": 10, "bandwidth": 800}
+        }
+        
+        self.config = {
+            'sync_interval': 1.0,
+            'slot_ms': 10,
+            'udp_port': 5005,
+            'broadcast_ip': '255.255.255.255',
+            'max_retries': 3,
+            'socket_timeout': 0.1
+        }
+        
+        # Durum takibi
+        self.stats = {
+            'sync_sent': 0,
+            'sync_errors': 0,
+            'slot_activations': defaultdict(int),
+            'start_time': time.time(),
+            'last_sync_time': 0
+        }
+        
+        self.device_responses = {}
+        self.message_history = deque(maxlen=100)
+        self.running = False
+        
+        # Socket setup
+        self.sync_socket = None
+        self.listen_socket = None
+        
+    def setup_sockets(self):
+        """Socket kurulumları"""
+        try:
+            # Sync broadcast socket
+            self.sync_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sync_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            self.sync_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.sync_socket.settimeout(self.config['socket_timeout'])
+            
+            # Listen socket for device responses
+            self.listen_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.listen_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.listen_socket.bind(('', self.config['udp_port'] + 1))  # Listen on port 5006
+            self.listen_socket.settimeout(0.1)
+            
+            print("✅ Socket kurulumu tamamlandı")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Socket kurulum hatası: {e}")
+            return False
+    
+    def send_sync_message(self):
+        """Senkronizasyon mesajı gönder"""
+        try:
+            current_time = time.time()
+            message_data = {
+                "type": "SYNC",
+                "timestamp": current_time,
+                "slots": self.slot_table,
+                "cycle_id": int(current_time) % 10000,
+                "gateway_id": "AFDX-Gateway-001"
+            }
+            
+            message = json.dumps(message_data).encode()
+            
+            # Broadcast gönder
+            self.sync_socket.sendto(message, (self.config['broadcast_ip'], self.config['udp_port']))
+            
+            # İstatistikleri güncelle
+            self.stats['sync_sent'] += 1
+            self.stats['last_sync_time'] = current_time
+            
+            # Message history'ye ekle
+            self.message_history.append({
+                'time': current_time,
+                'type': 'SYNC_SENT',
+                'data': message_data
+            })
+            
+            timestamp_str = datetime.fromtimestamp(current_time).strftime("%H:%M:%S.%f")[:-3]
+            print(f"📡 [SYNC] {timestamp_str} | Broadcast gönderildi | Cycle: {message_data['cycle_id']}")
+            
+            return True
+            
+        except Exception as e:
+            self.stats['sync_errors'] += 1
+            print(f"❌ [ERROR] Sync gönderim hatası: {e}")
+            return False
+    
+    def activate_slot(self, slot_id, start_time):
+        """Slot aktivasyonu"""
+        slot = self.slot_table.get(slot_id)
+        if not slot:
+            return
+        
+        current_time = time.time()
+        slot_offset = (current_time - start_time) * 1000  # ms cinsinden
+        
+        self.stats['slot_activations'][slot_id] += 1
+        
+        timestamp_str = datetime.fromtimestamp(current_time).strftime("%H:%M:%S.%f")[:-3]
+        
+        print(f"🟢 [SLOT-{slot_id}] {timestamp_str} | "
+              f"Device: {slot['device_id']} | "
+              f"Priority: {slot['priority']} | "
+              f"Duration: {slot['duration_ms']}ms | "
+              f"Offset: {slot_offset:.1f}ms")
+        
+        # Slot history'ye ekle
+        self.message_history.append({
+            'time': current_time,
+            'type': 'SLOT_ACTIVE',
+            'slot_id': slot_id,
+            'device': slot['device_id'],
+            'offset_ms': slot_offset
+        })
+    
+    def listen_for_responses(self):
+        """Cihaz cevaplarını dinle"""
+        while self.running:
+            try:
+                data, addr = self.listen_socket.recvfrom(1024)
+                current_time = time.time()
+                
+                try:
+                    message = json.loads(data.decode())
+                    device_ip = addr[0]
+                    
+                    # Cihaz cevabını kaydet
+                    if device_ip not in self.device_responses:
+                        self.device_responses[device_ip] = {
+                            'first_seen': current_time,
+                            'last_seen': current_time,
+                            'message_count': 0
+                        }
+                    
+                    self.device_responses[device_ip]['last_seen'] = current_time
+                    self.device_responses[device_ip]['message_count'] += 1
+                    
+                    # Mesaj tipine göre işle
+                    msg_type = message.get('type', 'UNKNOWN')
+                    device_name = message.get('device', 'Unknown')
+                    
+                    timestamp_str = datetime.fromtimestamp(current_time).strftime("%H:%M:%S.%f")[:-3]
+                    
+                    if msg_type == 'ACK':
+                        print(f"✅ [ACK] {timestamp_str} | {device_ip} ({device_name}) | Sync onaylandı")
+                    elif msg_type == 'DATA':
+                        temp = message.get('temp', 'N/A')
+                        print(f"📊 [DATA] {timestamp_str} | {device_ip} ({device_name}) | Temp: {temp}°C")
+                    elif msg_type == 'ALERT':
+                        alert_msg = message.get('message', 'No message')
+                        print(f"🚨 [ALERT] {timestamp_str} | {device_ip} ({device_name}) | {alert_msg}")
+                    
+                except json.JSONDecodeError:
+                    print(f"⚠️ [WARNING] Invalid JSON from {addr[0]}")
+                    
+            except socket.timeout:
+                continue
+            except Exception as e:
+                if self.running:
+                    print(f"❌ [ERROR] Listen hatası: {e}")
+    
+    def print_statistics(self):
+        """İstatistikleri yazdır"""
+        current_time = time.time()
+        uptime = current_time - self.stats['start_time']
+        
+        print("\n" + "="*60)
+        print("📊 GATEWAY İSTATİSTİKLERİ")
+        print("="*60)
+        print(f"⏱️  Çalışma Süresi: {uptime:.1f}s")
+        print(f"📡 Gönderilen Sync: {self.stats['sync_sent']}")
+        print(f"❌ Sync Hataları: {self.stats['sync_errors']}")
+        print(f"📶 Başarı Oranı: {(self.stats['sync_sent']/(self.stats['sync_sent']+self.stats['sync_errors'])*100):.1f}%" if (self.stats['sync_sent']+self.stats['sync_errors']) > 0 else "N/A")
+        
+        print(f"\n🎯 SLOT AKTİVASYONLARI:")
+        for slot_id, count in self.stats['slot_activations'].items():
+            slot = self.slot_table[slot_id]
+            print(f"  Slot {slot_id} ({slot['device_id']}): {count} aktivasyon")
+        
+        print(f"\n🌐 AKTİF CİHAZLAR ({len(self.device_responses)}):")
+        for ip, info in self.device_responses.items():
+            last_seen_ago = current_time - info['last_seen']
+            status = "🟢 Aktif" if last_seen_ago < 5 else "🔴 Pasif"
+            print(f"  {ip}: {info['message_count']} mesaj | {last_seen_ago:.1f}s önce | {status}")
+        
+        print("="*60 + "\n")
+    
+    def statistics_monitor(self):
+        """Periyodik istatistik gösterimi"""
+        while self.running:
+            time.sleep(30)  # 30 saniyede bir
+            if self.running:
+                self.print_statistics()
+    
+    def run_slot_cycle(self):
+        """Ana slot döngüsü"""
+        while self.running:
+            cycle_start = time.time()
+            
+            # Sync mesajı gönder
+            if not self.send_sync_message():
+                print("⚠️ Sync gönderimi başarısız, devam ediliyor...")
+            
+            # Slot aktivasyonları
+            for slot_id in sorted(self.slot_table.keys()):
+                if not self.running:
+                    break
+                    
+                slot_start_time = cycle_start + (slot_id * self.config['slot_ms'] / 1000.0)
+                
+                # Slot zamanını bekle
+                wait_time = slot_start_time - time.time()
+                if wait_time > 0:
+                    time.sleep(wait_time)
+                
+                # Slot'u aktive et
+                self.activate_slot(slot_id, cycle_start)
+            
+            # Cycle tamamlanmasını bekle
+            cycle_elapsed = time.time() - cycle_start
+            remaining_time = self.config['sync_interval'] - cycle_elapsed
+            
+            if remaining_time > 0:
+                time.sleep(remaining_time)
+            elif remaining_time < -0.1:  # 100ms'den fazla gecikme
+                print(f"⚠️ [WARNING] Cycle gecikmesi: {-remaining_time*1000:.1f}ms")
+    
+    def start(self):
+        """Gateway scheduler'ı başlat"""
+        print("🚀 AFDX-lite-IoT Gateway Scheduler başlatılıyor...")
+        
+        if not self.setup_sockets():
+            return
+        
+        self.running = True
+        
+        # Response listener thread
+        listen_thread = threading.Thread(target=self.listen_for_responses)
+        listen_thread.daemon = True
+        listen_thread.start()
+        
+        # Statistics monitor thread  
+        stats_thread = threading.Thread(target=self.statistics_monitor)
+        stats_thread.daemon = True
+        stats_thread.start()
+        
+        print("✅ Gateway aktif - Slot scheduling başladı")
+        print("📡 Sync broadcast'i dinleniyor...")
+        print("🔄 Çıkmak için Ctrl+C\n")
+        
+        try:
+            self.run_slot_cycle()
+        except KeyboardInterrupt:
+            print("\n🛑 Kapatılıyor...")
+        finally:
+            self.stop()
+    
+    def stop(self):
+        """Gateway'i durdur"""
+        self.running = False
+        
+        if self.sync_socket:
+            self.sync_socket.close()
+        if self.listen_socket:
+            self.listen_socket.close()
+            
+        self.print_statistics()
+        print("✅ Gateway kapatıldı.")
+
+# Ana program
+if __name__ == "__main__":
+    gateway = AFDXGatewayScheduler()
+    gateway.start()
