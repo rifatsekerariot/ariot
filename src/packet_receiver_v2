@@ -1,0 +1,192 @@
+import socket
+import json
+import time
+import threading
+from datetime import datetime
+from collections import defaultdict
+
+class UDPPacketReceiver:
+    def __init__(self, port=5005, buffer_size=512):
+        self.port = port
+        self.buffer_size = buffer_size
+        self.socket = None
+        self.running = False
+        self.stats = defaultdict(int)
+        self.device_last_seen = {}
+        
+    def setup_socket(self):
+        """UDP socket kurulumu"""
+        try:
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.socket.bind(("", self.port))
+            self.socket.settimeout(1.0)
+            print(f"[RECEIVER] Port {self.port} dinleniyor...")
+            return True
+        except Exception as e:
+            print(f"[ERROR] Socket kurulumu basarisiz: {e}")
+            return False
+    
+    def parse_message(self, data, addr):
+        """Gelen mesajı parse et"""
+        try:
+            message = data.decode("utf-8")
+            device_ip = addr[0]
+            timestamp = time.time()
+            
+            # JSON parse denemeleri
+            try:
+                json_data = json.loads(message)
+                return {
+                    'raw': message,
+                    'json': json_data,
+                    'device_ip': device_ip,
+                    'timestamp': timestamp,
+                    'parsed': True
+                }
+            except json.JSONDecodeError:
+                return {
+                    'raw': message,
+                    'json': None,
+                    'device_ip': device_ip,
+                    'timestamp': timestamp,
+                    'parsed': False
+                }
+                
+        except UnicodeDecodeError as e:
+            return {
+                'raw': data.hex(),
+                'json': None,
+                'device_ip': addr[0],
+                'timestamp': time.time(),
+                'parsed': False,
+                'error': f'Decode error: {e}'
+            }
+    
+    def format_timestamp(self, timestamp):
+        """Timestamp'i okunabilir formata çevir"""
+        return datetime.fromtimestamp(timestamp).strftime("%H:%M:%S.%f")[:-3]
+    
+    def handle_message(self, msg_data):
+        """Mesaj türüne göre işlem yap"""
+        timestamp_str = self.format_timestamp(msg_data['timestamp'])
+        device = msg_data['device_ip']
+        
+        # İstatistikler güncelle
+        self.stats['total_packets'] += 1
+        self.device_last_seen[device] = msg_data['timestamp']
+        
+        if not msg_data['parsed']:
+            print(f"[RAW] {timestamp_str} | {device} | {msg_data['raw']}")
+            if 'error' in msg_data:
+                print(f"[ERROR] {msg_data['error']}")
+            return
+        
+        json_data = msg_data['json']
+        msg_type = json_data.get('type', 'UNKNOWN')
+        
+        # Mesaj türüne göre işlem
+        if msg_type == 'ALERT':
+            self.handle_alert(timestamp_str, device, json_data)
+        elif msg_type == 'DATA':
+            self.handle_data(timestamp_str, device, json_data)
+        elif msg_type == 'SYNC':
+            self.handle_sync(timestamp_str, device, json_data)
+        else:
+            print(f"[UNKNOWN] {timestamp_str} | {device} | {msg_data['raw']}")
+    
+    def handle_alert(self, timestamp, device, json_data):
+        """Alert mesajlarını işle"""
+        device_name = json_data.get('device', 'Unknown')
+        message = json_data.get('message', 'No message')
+        temp = json_data.get('temp', 'N/A')
+        
+        self.stats['alerts'] += 1
+        print(f"🚨 [ALERT] {timestamp} | {device} ({device_name}) | {message} | Temp: {temp}°C")
+    
+    def handle_data(self, timestamp, device, json_data):
+        """Data mesajlarını işle"""
+        device_name = json_data.get('device', 'Unknown')
+        temp = json_data.get('temp', 'N/A')
+        
+        self.stats['data_packets'] += 1
+        print(f"📊 [DATA] {timestamp} | {device} ({device_name}) | Temp: {temp}°C")
+    
+    def handle_sync(self, timestamp, device, json_data):
+        """Sync mesajlarını işle"""
+        sync_timestamp = json_data.get('timestamp', 'N/A')
+        self.stats['sync_packets'] += 1
+        print(f"🔄 [SYNC] {timestamp} | {device} | Server Time: {sync_timestamp}")
+    
+    def print_stats(self):
+        """İstatistikleri yazdır"""
+        print("\n" + "="*50)
+        print("📈 İSTATİSTİKLER")
+        print("="*50)
+        print(f"Toplam Paket: {self.stats['total_packets']}")
+        print(f"Data Paketleri: {self.stats['data_packets']}")
+        print(f"Alert Paketleri: {self.stats['alerts']}")
+        print(f"Sync Paketleri: {self.stats['sync_packets']}")
+        print(f"Aktif Cihazlar: {len(self.device_last_seen)}")
+        
+        if self.device_last_seen:
+            print("\n🔌 AKTİF CİHAZLAR:")
+            current_time = time.time()
+            for device, last_seen in self.device_last_seen.items():
+                seconds_ago = int(current_time - last_seen)
+                print(f"  {device} - {seconds_ago}s önce")
+        print("="*50 + "\n")
+    
+    def stats_monitor(self):
+        """Periyodik olarak istatistik göster"""
+        while self.running:
+            time.sleep(30)  # 30 saniyede bir istatistik göster
+            if self.running:
+                self.print_stats()
+    
+    def start(self):
+        """UDP alıcıyı başlat"""
+        if not self.setup_socket():
+            return
+        
+        self.running = True
+        
+        # İstatistik thread'i başlat
+        stats_thread = threading.Thread(target=self.stats_monitor)
+        stats_thread.daemon = True
+        stats_thread.start()
+        
+        print("UDP Receiver başlatıldı. Çıkmak için Ctrl+C")
+        print("="*50)
+        
+        try:
+            while self.running:
+                try:
+                    data, addr = self.socket.recvfrom(self.buffer_size)
+                    msg_data = self.parse_message(data, addr)
+                    self.handle_message(msg_data)
+                    
+                except socket.timeout:
+                    continue
+                except KeyboardInterrupt:
+                    break
+                except Exception as e:
+                    print(f"[ERROR] Paket işleme hatası: {e}")
+                    
+        except KeyboardInterrupt:
+            print("\n[INFO] Kapatılıyor...")
+        finally:
+            self.stop()
+    
+    def stop(self):
+        """UDP alıcıyı durdur"""
+        self.running = False
+        if self.socket:
+            self.socket.close()
+        self.print_stats()
+        print("[INFO] UDP Receiver kapatıldı.")
+
+# Ana program
+if __name__ == "__main__":
+    receiver = UDPPacketReceiver(port=5005)
+    receiver.start()
