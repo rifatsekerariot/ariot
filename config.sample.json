@@ -1,0 +1,10 @@
+{
+  "smtp_host": "smtp.office365.com",
+  "smtp_port": 587,
+  "smtp_user": "alarm@firma.com",
+  "smtp_pass": "sifre",
+  "smtp_from": "alarm@firma.com",
+  "admin_email": "admin@firma.com",
+  "admin_password": "admin",
+  "port": 8090
+}
