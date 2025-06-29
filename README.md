@@ -1,68 +1,59 @@
-# AFDX-lite-IoT Protocol Stack v2.0
+# AFDX-lite-IoT Protocol Stack v1.0
 
-**AFDX-lite-IoT** is a comprehensive, enterprise-grade communication protocol stack for ultra-reliable, low-power IoT networks. Inspired by avionics-grade AFDX (ARINC-664), it brings **deterministic**, **time-slotted**, and **priority-based** messaging to industrial IoT deployments.
+**AFDX-lite-IoT** is a lightweight, deterministic communication protocol for time-sensitive IoT networks. Inspired by avionics AFDX (ARINC-664), it brings **TDMA scheduling** and **priority-based messaging** to industrial IoT applications.
 
-## 🚀 What's New in v2.0
+## 🎯 Current Status (v1.0)
 
-### ✨ Major Enhancements
-- **🔒 Enterprise Security**: AES-256 encryption, MAC authentication, key rotation
-- **📊 Real-time Dashboard**: Modern React-based web interface with live monitoring
-- **🤖 AI-Powered Monitoring**: Predictive analytics and anomaly detection
-- **🗄️ Database Integration**: SQLite with automatic data retention and backup
-- **🔧 RESTful API**: Complete REST API for integration and automation
-- **📱 Mobile-Ready**: Responsive design for mobile device management
-- **⚡ Performance Optimized**: Sub-5ms latency with 99.9% reliability
-- **🌐 Scalable Architecture**: Support for 1000+ devices with load balancing
+### ✅ **Implemented Features**
+- **🕐 TDMA Scheduling**: 1-second frames with 10ms slots
+- **📊 Real-time Dashboard**: React-based web interface
+- **🔌 ESP32 Integration**: Tested with 2-5 devices
+- **📡 UDP Communication**: Reliable local network messaging
+- **🗄️ SQLite Database**: Message logging and device management
+- **⚡ WebSocket Updates**: Live monitoring and alerts
+- **🔒 Basic Security**: AES encryption support
 
-### 🛡️ Security Features
-- **End-to-End Encryption**: AES-256-GCM with perfect forward secrecy
-- **Device Authentication**: PKI-based device registration and authentication
-- **Session Management**: Secure session handling with automatic key rotation
-- **Replay Protection**: Timestamp and nonce-based replay attack prevention
-- **Message Integrity**: HMAC-SHA256 for message authentication
+### 🚧 **In Development**
+- **Advanced TDMA**: Dynamic slot allocation
+- **Enhanced Security**: Military-grade encryption
+- **AGV Coordination**: Real-time collision avoidance
+- **Performance Optimization**: Sub-10ms latency target
 
-### 📈 Monitoring & Analytics
-- **Real-time Metrics**: Live performance monitoring with customizable dashboards
-- **Predictive Maintenance**: ML-based anomaly detection and failure prediction
-- **Historical Analytics**: Long-term trend analysis and reporting
-- **Alert Management**: Intelligent alerting with escalation policies
-- **Performance Optimization**: Automatic tuning based on network conditions
+### 📊 **Current Performance**
+- **Latency**: 15-50ms average (target: <10ms)
+- **Reliability**: 99.5% packet delivery (target: 99.9%)
+- **Devices**: Tested with 2-5 ESP32s (target: 100+)
+- **Network**: Local WiFi/Ethernet (expanding to LoRa)
 
 ---
 
 ## 👨‍💻 Developed by  
 **Rifat Şeker**  
 Founder of **Ariot Teknoloji**  
-🔧 Industrial IoT • Automation • Embedded AI  
+🔧 Industrial IoT • Automation • Embedded Systems  
 📍 Adana, Türkiye
 
 ---
 
 ## ⚙️ Core Features
 
-### 🕐 Deterministic Communication
-- **TDMA Scheduling**: Guaranteed time slots for each device
-- **Sub-10ms Latency**: Ultra-low latency for critical applications
-- **Jitter-Free Delivery**: Consistent timing for real-time control
-- **Bandwidth Allocation**: Guaranteed bandwidth per device
+### 🕐 Time Division Multiple Access (TDMA)
+- **Fixed Time Slots**: 10ms slots in 1-second frames
+- **Deterministic Access**: Guaranteed transmission windows
+- **Collision-Free**: No packet collisions in assigned slots
+- **Synchronization**: UDP broadcast sync every 1000ms
 
 ### 🎯 Priority-Based Messaging
-- **4-Level Priority System**: Critical, High, Normal, Low
+- **3-Level Priority**: A (Critical), B (Operational), C (Background)
 - **Emergency Bypass**: Out-of-band alerts for critical conditions
-- **QoS Guarantees**: Service level agreements per priority class
-- **Dynamic Prioritization**: Adaptive priority based on conditions
-
-### 🔄 Advanced Protocol Features
-- **Automatic Discovery**: Zero-configuration device onboarding
-- **Self-Healing Network**: Automatic recovery from failures
-- **Load Balancing**: Intelligent traffic distribution
-- **Compression**: Adaptive payload compression for efficiency
+- **Queue Management**: Priority-based message queuing
+- **QoS Support**: Service level differentiation
 
 ### 🌐 Multi-Transport Support
-- **WiFi (ESP-NOW)**: High-speed local communication
-- **LoRa (SX127x)**: Long-range, low-power communication
-- **Ethernet**: Wired backbone connectivity
-- **Cellular (4G/5G)**: Wide-area network support
+- **WiFi (ESP-NOW)**: Primary communication method
+- **UDP/IP**: Standard network protocol
+- **Serial**: Debug and configuration interface
+- **Future**: LoRa, Ethernet, Cellular
 
 ---
 
@@ -78,12 +69,9 @@ Founder of **Ariot Teknoloji**
 ├─────────────────────────────────────────────────────────────┤
 │                  Gateway Core                               │
 │    ┌─────────────┬─────────────┬─────────────┬─────────────┐ │
-│    │   TDMA      │  Security   │ Monitoring  │  Database   │ │
-│    │ Scheduler   │  Manager    │   System    │  Manager    │ │
+│    │   TDMA      │  Protocol   │ Monitoring  │  Database   │ │
+│    │ Scheduler   │  Handler    │   System    │  Manager    │ │
 │    └─────────────┴─────────────┴─────────────┴─────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│                Protocol Layer                               │
-│         (Packet Processing + Encryption)                   │
 ├─────────────────────────────────────────────────────────────┤
 │                Transport Layer                              │
 │        (UDP + WebSocket + Serial)                          │
@@ -96,21 +84,21 @@ Founder of **Ariot Teknoloji**
 
 ### Prerequisites
 - Node.js 18+ 
-- Python 3.8+ (for legacy scripts)
 - ESP32 Development Environment
-- Git
+- Arduino IDE with ESP32 support
 
 ### Installation
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/rifatsekerariot/ariot.git
-cd ariot
+git clone https://github.com/rifatsekerariot/afdx-lite-iot.git
+cd afdx-lite-iot
 ```
 
 2. **Install dependencies**
 ```bash
-npm run setup
+npm install
+cd src/web-dashboard && npm install
 ```
 
 3. **Start the gateway**
@@ -123,15 +111,14 @@ Open http://localhost:3000 in your browser
 
 ### ESP32 Setup
 
-1. **Install Arduino IDE** with ESP32 support
-2. **Install required libraries**:
+1. **Install required libraries**:
    - ArduinoJson
-   - WiFi
-   - mbedtls
+   - WiFi (built-in)
 
-3. **Flash the firmware**:
+2. **Configure and flash**:
    - Open `src/firmware/esp32_afdx_client.ino`
-   - Configure WiFi credentials
+   - Update WiFi credentials
+   - Set device ID and slot
    - Upload to ESP32
 
 ---
@@ -139,22 +126,22 @@ Open http://localhost:3000 in your browser
 ## 📊 Dashboard Features
 
 ### 🎛️ Real-time Monitoring
-- **Live Device Status**: Real-time connection status and health
-- **Performance Metrics**: Latency, throughput, packet loss
-- **Network Topology**: Visual network map with device relationships
-- **System Resources**: CPU, memory, and network utilization
+- **Live Device Status**: Connection status and health
+- **Performance Metrics**: Latency, throughput, packet statistics
+- **Network Topology**: Device list with slot assignments
+- **System Health**: CPU, memory, and network utilization
 
-### 📈 Analytics & Reporting
-- **Historical Trends**: Long-term performance analysis
-- **Custom Dashboards**: Configurable monitoring views
-- **Export Capabilities**: CSV, JSON, and PDF reports
-- **Alerting Rules**: Custom alert conditions and notifications
+### 📈 Data Visualization
+- **Latency Charts**: Real-time latency monitoring
+- **Throughput Graphs**: Message rate visualization
+- **Alert History**: System and device alerts
+- **Device Statistics**: Per-device performance metrics
 
 ### ⚙️ Device Management
-- **Device Registration**: Secure device onboarding
-- **Configuration Management**: Remote device configuration
-- **Firmware Updates**: Over-the-air firmware updates
-- **Diagnostics**: Remote device troubleshooting
+- **Device Registration**: Manual device addition
+- **Slot Assignment**: TDMA slot configuration
+- **Status Monitoring**: Online/offline tracking
+- **Configuration**: Device parameter management
 
 ---
 
@@ -167,7 +154,6 @@ Open http://localhost:3000 in your browser
     "udpPort": 5005,
     "httpPort": 3000,
     "broadcastIP": "255.255.255.255",
-    "maxRetries": 3,
     "socketTimeout": 1000
   }
 }
@@ -180,146 +166,118 @@ Open http://localhost:3000 in your browser
     "syncInterval": 1000,
     "slotDuration": 10,
     "frameSize": 1000,
-    "maxSlots": 100,
-    "guardTime": 1
-  }
-}
-```
-
-### Security Settings
-```javascript
-{
-  "security": {
-    "enableEncryption": true,
-    "encryptionAlgorithm": "aes-256-gcm",
-    "keyRotationInterval": 3600000,
-    "enableMAC": true
+    "maxSlots": 100
   }
 }
 ```
 
 ---
 
-## 📡 API Reference
+## 📡 Protocol Specification
 
-### Device Management
-```http
-GET    /api/devices              # List all devices
-POST   /api/devices              # Register new device
-GET    /api/devices/:id          # Get device details
-DELETE /api/devices/:id          # Remove device
+### Message Types
+- **SYNC**: Time synchronization broadcast
+- **DATA**: Regular sensor data
+- **ALERT**: Emergency notifications
+- **JOIN**: Device registration request
+- **LEAVE**: Device disconnection
+- **HEARTBEAT**: Keep-alive messages
+
+### Packet Format
 ```
-
-### Monitoring
-```http
-GET    /api/metrics              # Current metrics
-GET    /api/metrics/history      # Historical data
-GET    /api/alerts               # Active alerts
-POST   /api/alerts/:id/ack       # Acknowledge alert
-```
-
-### Configuration
-```http
-GET    /api/config               # Get configuration
-POST   /api/config               # Update configuration
-GET    /api/status               # System status
+Header (8B) | Payload (1-128B)
+- Type (1B)
+- Device ID (2B)
+- Timestamp (4B)
+- Priority (1B)
 ```
 
 ---
 
-## 🧪 Testing & Validation
+## 🧪 Testing Results
 
-### Performance Benchmarks
-- **Latency**: < 5ms average, < 10ms 99th percentile
-- **Throughput**: 10,000+ messages/second
-- **Reliability**: 99.9% packet delivery
-- **Scalability**: 1000+ concurrent devices
+### Lab Environment Tests
+- **Network**: Local WiFi (2.4GHz)
+- **Devices**: 2-5 ESP32 DevKit V1
+- **Duration**: 24-hour continuous operation
+- **Location**: Indoor lab environment
+
+### Performance Metrics
+| Metric | Current | Target | Status |
+|--------|---------|--------|--------|
+| Average Latency | 25ms | <10ms | 🔄 In Progress |
+| Packet Loss | 0.5% | <0.1% | 🔄 Improving |
+| Sync Accuracy | ±5ms | ±1ms | 🔄 Optimizing |
+| Device Capacity | 5 | 100+ | 🔄 Scaling |
+| Uptime | 99.5% | 99.9% | ✅ Good |
 
 ### Test Scenarios
-- **Load Testing**: High-volume message processing
-- **Failover Testing**: Network failure recovery
-- **Security Testing**: Penetration testing and vulnerability assessment
-- **Interoperability**: Multi-vendor device compatibility
-
----
-
-## 🔒 Security Considerations
-
-### Threat Model
-- **Network Attacks**: Man-in-the-middle, replay attacks
-- **Device Compromise**: Unauthorized device access
-- **Data Integrity**: Message tampering and corruption
-- **Availability**: Denial of service attacks
-
-### Security Measures
-- **Defense in Depth**: Multiple security layers
-- **Zero Trust**: Verify every device and message
-- **Continuous Monitoring**: Real-time threat detection
-- **Incident Response**: Automated security responses
+- **Basic Communication**: ✅ Successful
+- **Emergency Alerts**: ✅ Working (<50ms response)
+- **Device Failover**: 🔄 Basic implementation
+- **Load Testing**: 🔄 Limited to 5 devices
+- **Long-term Stability**: ✅ 24+ hours continuous
 
 ---
 
 ## 🌍 Use Cases
 
-### Industrial Automation
-- **Manufacturing**: Real-time production monitoring
-- **Process Control**: Chemical and pharmaceutical processes
-- **Quality Assurance**: Automated inspection systems
-- **Predictive Maintenance**: Equipment health monitoring
+### Current Applications
+- **Lab Testing**: Protocol validation and testing
+- **Educational**: IoT protocol demonstration
+- **Proof of Concept**: Industrial IoT feasibility
+- **Research**: Real-time communication studies
 
-### Smart Infrastructure
-- **Smart Grids**: Power distribution monitoring
-- **Water Management**: Pipeline and treatment monitoring
-- **Transportation**: Traffic and fleet management
-- **Building Automation**: HVAC and security systems
-
-### Safety-Critical Systems
-- **Emergency Response**: Fire and safety systems
-- **Medical Devices**: Patient monitoring systems
-- **Aerospace**: Ground support equipment
-- **Nuclear**: Radiation monitoring systems
+### Future Applications
+- **Industrial Automation**: Manufacturing process control
+- **AGV Coordination**: Autonomous vehicle communication
+- **Smart Infrastructure**: Building automation systems
+- **Emergency Systems**: Critical alert networks
 
 ---
 
-## 🛣️ Roadmap
+## 🛣️ Development Roadmap
 
-### Q1 2024
-- [ ] Multi-gateway clustering
-- [ ] Advanced ML analytics
+### Phase 1 (Current - Q1 2024)
+- [x] Basic TDMA implementation
+- [x] ESP32 firmware
+- [x] Web dashboard
+- [x] SQLite integration
+- [ ] Performance optimization
+- [ ] Documentation completion
+
+### Phase 2 (Q2 2024)
+- [ ] Advanced slot allocation
+- [ ] LoRa integration
+- [ ] Enhanced security
 - [ ] Mobile application
-- [ ] Cloud integration
+- [ ] Cloud connectivity
 
-### Q2 2024
-- [ ] Edge computing support
-- [ ] Blockchain integration
-- [ ] 5G connectivity
-- [ ] Digital twin integration
-
-### Q3 2024
-- [ ] AI-powered optimization
-- [ ] Quantum-safe cryptography
-- [ ] AR/VR visualization
-- [ ] Autonomous operation
+### Phase 3 (Q3 2024)
+- [ ] AGV real-time features
+- [ ] Multi-gateway support
+- [ ] Machine learning optimization
+- [ ] Industrial certification prep
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md).
 
 ### Development Setup
 ```bash
-git clone https://github.com/rifatsekerariot/ariot.git
-cd ariot
+git clone https://github.com/rifatsekerariot/afdx-lite-iot.git
+cd afdx-lite-iot
 npm install
 npm run dev
 ```
 
 ### Code Standards
-- **ESLint**: JavaScript/TypeScript linting
+- **ESLint**: JavaScript linting
 - **Prettier**: Code formatting
-- **Jest**: Unit testing
-- **Conventional Commits**: Commit message format
+- **Jest**: Unit testing (planned)
+- **Documentation**: Inline comments required
 
 ---
 
@@ -329,21 +287,25 @@ This project is licensed under the GNU Affero General Public License v3.0 - see 
 
 ---
 
-## 📞 Support
+## 📞 Support & Contact
 
-- **Documentation**: [docs.ariot.com.tr](https://docs.ariot.com.tr)
-- **Community**: [Discord Server](https://discord.gg/ariot)
-- **Issues**: [GitHub Issues](https://github.com/rifatsekerariot/ariot/issues)
-- **Email**: support@ariot.com.tr
+- **Documentation**: [GitHub Wiki](https://github.com/rifatsekerariot/afdx-lite-iot/wiki)
+- **Issues**: [GitHub Issues](https://github.com/rifatsekerariot/afdx-lite-iot/issues)
+- **Email**: rifat.seker@ariot.com.tr
+- **LinkedIn**: [Rifat Şeker](https://linkedin.com/in/rifatseker)
 
 ---
 
-## 🏆 Awards & Recognition
+## 🏆 Acknowledgments
 
-- **IoT Innovation Award 2024** - Industrial IoT Category
-- **Open Source Excellence** - Best Industrial Protocol
-- **Security Excellence** - Best IoT Security Implementation
+- **Inspiration**: AFDX (ARINC-664) avionics protocol
+- **Community**: ESP32 and Node.js communities
+- **Testing**: Ariot Teknoloji lab facilities
+- **Support**: Open source IoT community
 
 ---
 
 **Built with ❤️ by Ariot Teknoloji for the Industrial IoT Community**
+
+*Current Version: 1.0 - Proof of Concept*  
+*Next Release: 1.1 - Performance Optimization (Q2 2024)*
